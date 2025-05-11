@@ -1,41 +1,35 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import ExamRecord from '@/models/ExamRecord';
+import { type NextRequest, NextResponse } from "next/server"
+import { getDb } from "@/lib/mongodb"
 
-export async function POST(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-    const data = await request.json();
-    const examRecord = await ExamRecord.create(data);
-    return NextResponse.json(examRecord, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: '시험 기록 저장 실패' }, { status: 500 });
+    const db = await getDb()
+    const examRecords = await db.collection("examRecords").find({}).toArray()
+
+    return NextResponse.json({ examRecords }, { status: 200 })
+  } catch (error) {
+    console.error("Error fetching exam records:", error)
+    return NextResponse.json({ error: "Failed to fetch exam records" }, { status: 500 })
   }
 }
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-    const examRecords = await ExamRecord.find().sort({ date: -1 });
-    return NextResponse.json(examRecords);
-  } catch (error: any) {
-    return NextResponse.json({ error: '시험 기록 조회 실패' }, { status: 500 });
-  }
-}
+    const body = await request.json()
+    const db = await getDb()
 
-export async function DELETE(request: Request) {
-  try {
-    await connectDB();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json({ error: 'ID가 필요합니다' }, { status: 400 });
+    // Add timestamps
+    const examRecord = {
+      ...body,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
 
-    await ExamRecord.findByIdAndDelete(id);
-    return NextResponse.json({ message: '기록이 삭제되었습니다' });
-  } catch (error: any) {
-    return NextResponse.json({ error: '시험 기록 삭제 실패' }, { status: 500 });
+    const result = await db.collection("examRecords").insertOne(examRecord)
+
+    return NextResponse.json({ success: true, id: result.insertedId }, { status: 201 })
+  } catch (error) {
+    console.error("Error creating exam record:", error)
+    return NextResponse.json({ error: "Failed to create exam record" }, { status: 500 })
   }
-} 
+}

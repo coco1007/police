@@ -1,22 +1,24 @@
 import mongoose from 'mongoose';
 
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
 declare global {
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  } | undefined;
+  var mongoose: MongooseCache | undefined;
 }
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('MongoDB URI가 설정되지 않았습니다. 환경 변수 MONGODB_URI를 확인해주세요.');
+  throw new Error('MongoDB URI가 설정되지 않았습니다.');
 }
 
-let cached = global.mongoose;
+let cached: MongooseCache = global.mongoose || { conn: null, promise: null };
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 async function connectDB() {
@@ -29,7 +31,7 @@ async function connectDB() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((mongoose) => {
       console.log('MongoDB 연결 성공!');
       return mongoose;
     }).catch((error) => {
@@ -48,4 +50,4 @@ async function connectDB() {
   return cached.conn;
 }
 
-export default connectDB; mport mongoose from 'mongoose';
+export default connectDB;
