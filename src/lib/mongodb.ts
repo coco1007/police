@@ -10,7 +10,7 @@ declare global {
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('MongoDB URI가 설정되지 않았습니다.');
+  throw new Error('MongoDB URI가 설정되지 않았습니다. 환경 변수 MONGODB_URI를 확인해주세요.');
 }
 
 let cached = global.mongoose;
@@ -30,7 +30,11 @@ async function connectDB() {
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('MongoDB 연결 성공!');
       return mongoose;
+    }).catch((error) => {
+      console.error('MongoDB 연결 실패:', error);
+      throw error;
     });
   }
 
@@ -44,4 +48,4 @@ async function connectDB() {
   return cached.conn;
 }
 
-export default connectDB; 
+export default connectDB; mport mongoose from 'mongoose';
